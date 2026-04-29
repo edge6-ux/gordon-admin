@@ -17,7 +17,7 @@ async function requireAdmin() {
     .select("role")
     .eq("id", user.id)
     .single();
-  return profile?.role === "admin" ? user : null;
+  return (profile?.role === "master_admin" || profile?.role === "admin") ? user : null;
 }
 
 export async function GET() {
@@ -40,7 +40,7 @@ export async function GET() {
     id:           u.id,
     email:        u.email,
     name:         profileMap[u.id]?.name ?? null,
-    role:         profileMap[u.id]?.role ?? "viewer",
+    role:         profileMap[u.id]?.role ?? "crew_member",
     created_at:   u.created_at,
     last_sign_in: u.last_sign_in_at ?? null,
   }));
