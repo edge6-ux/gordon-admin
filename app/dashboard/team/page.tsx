@@ -37,7 +37,7 @@ function InviteForm({ onCreated }: { onCreated: (user: TeamUser) => void }) {
   const [email,    setEmail]    = useState("");
   const [name,     setName]     = useState("");
   const [password, setPassword] = useState("");
-  const [role,     setRole]     = useState<Role>("viewer");
+  const [role,     setRole]     = useState<Role>("crew_member");
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<string | null>(null);
 
