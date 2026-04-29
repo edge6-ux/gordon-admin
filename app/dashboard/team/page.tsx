@@ -62,7 +62,7 @@ function InviteForm({ onCreated }: { onCreated: (user: TeamUser) => void }) {
       return;
     }
     onCreated({ id: data.id, email, name: name || null, role, created_at: new Date().toISOString(), last_sign_in: null });
-    setEmail(""); setName(""); setPassword(""); setRole("viewer"); setOpen(false);
+    setEmail(""); setName(""); setPassword(""); setRole("crew_member"); setOpen(false);
     setLoading(false);
   }
 
