@@ -17,7 +17,7 @@ async function requireAdmin() {
     .select("role")
     .eq("id", user.id)
     .single();
-  return profile?.role === "admin" ? user : null;
+  return (profile?.role === "master_admin" || profile?.role === "admin") ? user : null;
 }
 
 export async function PATCH(
