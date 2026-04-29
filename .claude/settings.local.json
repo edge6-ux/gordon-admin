@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --yes)",
-      "Bash(mv *)"
+      "Bash(mv *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(node *)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\edger\\\\OneDrive\\\\Documents\\\\gordon-admin\\\\app\\\\dashboard\\\\jobs\\\\[id]\\\\edit\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\edger\\\\OneDrive\\\\Documents\\\\gordon-admin\\\\app\\\\dashboard\\\\customers\\\\[phone]\\\\edit\")",
+      "Bash(curl *)",
+      "Bash(python -c \"import sys,json; users=json.load\\(sys.stdin\\).get\\('users',[]\\); [print\\(u['email'], u['id']\\) for u in users]\")"
     ]
   }
 }

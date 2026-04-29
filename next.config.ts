@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["mapbox-gl"],
+  serverExternalPackages: ["@react-pdf/renderer"],
 };
 
 export default nextConfig;
