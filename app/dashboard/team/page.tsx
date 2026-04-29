@@ -197,12 +197,16 @@ export default function TeamPage() {
   const [loading,    setLoading]    = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [updating,   setUpdating]   = useState<string | null>(null);
+  const [currentId,  setCurrentId]  = useState<string | null>(null);
 
   useEffect(() => {
     if (!permissions.canManageTeam) {
       router.replace("/dashboard");
       return;
     }
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d: { id?: string }) => { if (d.id) setCurrentId(d.id); });
     fetch("/api/admin/users")
       .then((r) => r.json())
       .then((data: TeamUser[]) => { setUsers(Array.isArray(data) ? data : []); setLoading(false); })
@@ -294,6 +298,7 @@ export default function TeamPage() {
                 const cfg          = ROLE_CONFIG[user.role] ?? ROLE_CONFIG.crew_member;
                 const isProcessing = updating === user.id;
                 const isConfirming = confirming === user.id;
+                const isSelf       = user.id === currentId;
 
                 return (
                   <tr
@@ -312,30 +317,40 @@ export default function TeamPage() {
 
                     {/* Role selector */}
                     <td className="px-4 py-3.5">
-                      <div className="relative inline-flex items-center">
-                        <select
-                          value={user.role}
-                          disabled={isProcessing}
-                          onChange={(e) => updateRole(user.id, e.target.value as Role)}
-                          className="appearance-none pl-2.5 pr-7 py-1 rounded-full border-0 font-medium cursor-pointer"
-                          style={{
-                            background:  cfg.bg,
-                            color:       cfg.color,
-                            fontFamily:  "var(--font-inter)",
-                            fontSize:    "12px",
-                            outline:     "none",
-                          }}
+                      {isSelf ? (
+                        <span
+                          className="inline-flex items-center px-2.5 py-1 rounded-full"
+                          style={{ background: cfg.bg, color: cfg.color, fontFamily: "var(--font-inter)", fontSize: "12px", fontWeight: 500 }}
                         >
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>{ROLE_CONFIG[r].label}</option>
-                          ))}
-                        </select>
-                        <ChevronDown
-                          size={11}
-                          className="absolute right-2 pointer-events-none"
-                          style={{ color: cfg.color }}
-                        />
-                      </div>
+                          <Shield size={11} className="mr-1" />
+                          {cfg.label}
+                        </span>
+                      ) : (
+                        <div className="relative inline-flex items-center">
+                          <select
+                            value={user.role}
+                            disabled={isProcessing}
+                            onChange={(e) => updateRole(user.id, e.target.value as Role)}
+                            className="appearance-none pl-2.5 pr-7 py-1 rounded-full border-0 font-medium cursor-pointer"
+                            style={{
+                              background:  cfg.bg,
+                              color:       cfg.color,
+                              fontFamily:  "var(--font-inter)",
+                              fontSize:    "12px",
+                              outline:     "none",
+                            }}
+                          >
+                            {ROLES.map((r) => (
+                              <option key={r} value={r}>{ROLE_CONFIG[r].label}</option>
+                            ))}
+                          </select>
+                          <ChevronDown
+                            size={11}
+                            className="absolute right-2 pointer-events-none"
+                            style={{ color: cfg.color }}
+                          />
+                        </div>
+                      )}
                     </td>
 
                     {/* Joined */}
@@ -354,7 +369,7 @@ export default function TeamPage() {
 
                     {/* Actions */}
                     <td className="px-4 py-3.5">
-                      {isConfirming ? (
+                      {isSelf ? null : isConfirming ? (
                         <div className="flex items-center gap-2">
                           <span style={{ fontFamily: "var(--font-inter)", fontSize: "12px", color: "#E24B4A" }}>
                             Remove user?
