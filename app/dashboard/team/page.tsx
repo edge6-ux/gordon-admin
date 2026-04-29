@@ -291,7 +291,7 @@ export default function TeamPage() {
             </thead>
             <tbody>
               {users.map((user) => {
-                const cfg          = ROLE_CONFIG[user.role] ?? ROLE_CONFIG.viewer;
+                const cfg          = ROLE_CONFIG[user.role] ?? ROLE_CONFIG.crew_member;
                 const isProcessing = updating === user.id;
                 const isConfirming = confirming === user.id;
 
