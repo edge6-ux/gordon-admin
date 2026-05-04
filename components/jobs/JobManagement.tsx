@@ -87,7 +87,11 @@ export default function JobManagement({ job }: Props) {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <span style={{ ...labelStyle }}>Job Management</span>
+        <span style={{ ...labelStyle }}>
+          {["submitted", "reviewed", "quoted"].includes(job.status)
+            ? "Quote Management"
+            : "Job Management"}
+        </span>
         {saveState === "saving" && (
           <Loader2 size={14} className="animate-spin" style={{ color: "#888780" }} />
         )}
