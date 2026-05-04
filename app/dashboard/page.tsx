@@ -495,12 +495,12 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-3 flex-wrap">
           <Link
-            href="/dashboard/inbox"
+            href="/dashboard/workstation"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white hover:opacity-90 transition-opacity"
             style={{ background: "#1C3A2B", fontFamily: "var(--font-oswald)", fontSize: "14px" }}
           >
             <Inbox size={16} />
-            Open Inbox
+            Open Workstation
           </Link>
           {isMasterAdmin && (
             <Link

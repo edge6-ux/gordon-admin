@@ -37,7 +37,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Workstation",
     href:  "/dashboard/workstation",
     icon:  Inbox,
-    roles: ["master_admin", "admin", "sales", "crew_leader"],
+    roles: ["master_admin", "admin", "sales", "crew_leader", "crew_member"],
   },
   {
     label: "Jobs",

@@ -41,7 +41,14 @@ type CrewLeaderData = {
   crewMembers: CrewMember[];
 };
 
-type WorkstationData = AdminData | SalesData | CrewLeaderData;
+type CrewMemberData = {
+  role:     "crew_member";
+  userId:   string;
+  jobs:     Job[];
+  profiles: Record<string, Profile>;
+};
+
+type WorkstationData = AdminData | SalesData | CrewLeaderData | CrewMemberData;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -434,6 +441,83 @@ function CrewLeaderWorkstation({ data }: { data: CrewLeaderData }) {
   );
 }
 
+// ─── Crew Member view ────────────────────────────────────────────────────────
+
+function CrewMemberWorkstation({ data }: { data: CrewMemberData }) {
+  const nameById = (id: string) => data.profiles[id]?.name ?? "Unknown";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <Card>
+        <CardHeader
+          icon={Users}
+          label="My Upcoming Jobs"
+          description="Jobs you've been assigned to. Check in with your crew leader for details."
+          count={data.jobs.length}
+          accentColor="#1C3A2B"
+          accentBg="#EAF3DE"
+        />
+        {data.jobs.length === 0 ? (
+          <EmptyRow message="No jobs assigned to you right now" />
+        ) : (
+          data.jobs.map((job, i) => (
+            <div
+              key={job.id}
+              style={{
+                padding: "14px 20px",
+                borderBottom: i < data.jobs.length - 1 ? "1px solid #F0F0EE" : "none",
+                display: "flex", alignItems: "center", gap: 14,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                  <span style={{ fontFamily: "var(--font-inter)", fontWeight: 600, fontSize: 14, color: "#1A1A1A" }}>
+                    {job.customer_name}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "#888780" }}>
+                    {job.reference_code}
+                  </span>
+                  {job.status === "in_progress" && (
+                    <span style={{ background: "#FEF3CD", color: "#92400E", borderRadius: 20, padding: "1px 7px", fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 500 }}>
+                      In Progress
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "2px 12px" }}>
+                  {job.property_address && (
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A", display: "flex", alignItems: "center", gap: 3 }}>
+                      <MapPin size={11} style={{ color: "#888780" }} />{job.property_address}
+                    </span>
+                  )}
+                  {job.scheduled_date && (
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A", display: "flex", alignItems: "center", gap: 3 }}>
+                      <Clock size={11} style={{ color: "#888780" }} />
+                      {new Date(job.scheduled_date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                      {job.scheduled_time ? ` @ ${formatTime(job.scheduled_time)}` : ""}
+                    </span>
+                  )}
+                  {job.assigned_to && (
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A", display: "flex", alignItems: "center", gap: 3 }}>
+                      <User size={11} style={{ color: "#888780" }} />
+                      {nameById(job.assigned_to)}
+                    </span>
+                  )}
+                </div>
+                {job.crew_notes && (
+                  <div style={{ marginTop: 6, padding: "6px 10px", background: "#F9F9F8", borderRadius: 8, fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A" }}>
+                    {job.crew_notes}
+                  </div>
+                )}
+              </div>
+              <ActionLink href={`/dashboard/jobs/${job.id}`} label="View" accentColor="#1C3A2B" accentBg="#EAF3DE" />
+            </div>
+          ))
+        )}
+      </Card>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function WorkstationPage() {
@@ -446,10 +530,10 @@ export default function WorkstationPage() {
       .then((d) => { setData(d); setLoading(false); });
   }, []);
 
-  const subtitle = data?.role === "sales"
-    ? "Your active quote queue and in-progress quotes."
-    : data?.role === "crew_leader"
-    ? "Your assigned jobs. Acknowledge each one and select your crew."
+  const subtitle =
+    data?.role === "sales"        ? "Your active quote queue and in-progress quotes."
+    : data?.role === "crew_leader" ? "Your assigned jobs. Acknowledge each one and select your crew."
+    : data?.role === "crew_member" ? "Your upcoming jobs. Check in with your crew leader for any updates."
     : "Everything that needs your attention today.";
 
   return (
@@ -470,8 +554,9 @@ export default function WorkstationPage() {
           ))}
         </div>
       ) : !data ? null
-        : data.role === "sales"       ? <SalesWorkstation      data={data} />
-        : data.role === "crew_leader" ? <CrewLeaderWorkstation data={data} />
+        : data.role === "sales"        ? <SalesWorkstation      data={data} />
+        : data.role === "crew_leader"  ? <CrewLeaderWorkstation data={data} />
+        : data.role === "crew_member"  ? <CrewMemberWorkstation data={data} />
         : <AdminWorkstation data={data as AdminData} />}
     </div>
   );

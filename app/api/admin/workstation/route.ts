@@ -111,5 +111,32 @@ export async function GET() {
     });
   }
 
+  // ─── Crew Member ─────────────────────────────────────────────────────────────
+  if (role === "crew_member") {
+    const [jobsRes, profilesRes] = await Promise.all([
+      supabaseAdmin
+        .from("jobs")
+        .select("*")
+        .contains("report_data", { crew_member_ids: [user.id] })
+        .in("status", ["assigned", "in_progress"])
+        .is("deleted_at", null)
+        .order("scheduled_date", { ascending: true, nullsFirst: false }),
+      supabaseAdmin
+        .from("user_profiles")
+        .select("id, name, role"),
+    ]);
+
+    const profiles = Object.fromEntries(
+      (profilesRes.data ?? []).map((p) => [p.id, p])
+    );
+
+    return NextResponse.json({
+      role,
+      userId:   user.id,
+      jobs:     jobsRes.data ?? [],
+      profiles,
+    });
+  }
+
   return NextResponse.json({ role, sections: {}, profiles: {} });
 }

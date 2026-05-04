@@ -23,7 +23,7 @@ export default function LoginPage() {
       setLoginError("Invalid email or password");
       setLoginLoading(false);
     } else {
-      router.push("/dashboard");
+      router.push("/dashboard/workstation");
     }
   }
 
