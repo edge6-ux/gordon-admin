@@ -10,12 +10,13 @@ import type { EventClickArg, EventDropArg, EventInput } from "@fullcalendar/core
 import { X, MapPin, Phone, User, AlertTriangle, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import type { Job } from "@/lib/types";
+import type { ScheduleMode } from "./page";
 
 type UserProfile = {
-  id: string;
-  name: string | null;
+  id:    string;
+  name:  string | null;
   email: string;
-  role: string;
+  role:  string;
 };
 
 const PALETTE = [
@@ -39,6 +40,9 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   cancelled:   { bg: "#F8D7DA", color: "#721C24" },
 };
 
+const QUOTE_STATUSES = ["submitted", "reviewed", "quoted"];
+const JOB_STATUSES   = ["assigned", "in_progress"];
+
 function timeToMinutes(t: string) {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
@@ -47,14 +51,14 @@ function timeToMinutes(t: string) {
 function formatTime(time: string): string {
   const [h, m] = time.split(":").map(Number);
   const period = h >= 12 ? "PM" : "AM";
-  const hour = h % 12 || 12;
+  const hour   = h % 12 || 12;
   return `${hour}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-export default function CalendarView() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function CalendarView({ mode }: { mode: ScheduleMode }) {
+  const [jobs,        setJobs]        = useState<Job[]>([]);
+  const [users,       setUsers]       = useState<UserProfile[]>([]);
+  const [loading,     setLoading]     = useState(true);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   useEffect(() => {
@@ -68,19 +72,38 @@ export default function CalendarView() {
     });
   }, []);
 
+  // Close panel when switching modes
+  useEffect(() => { setSelectedJob(null); }, [mode]);
+
+  const relevantStatuses = mode === "quotes" ? QUOTE_STATUSES : JOB_STATUSES;
+
+  // Users shown in legend — salespeople for quote mode, crew leaders for job mode
+  const legendUsers = useMemo(
+    () => users.filter((u) =>
+      mode === "quotes" ? u.role === "sales" : u.role === "crew_leader"
+    ),
+    [users, mode]
+  );
+
+  // Color map covers all users so any assigned_to is colored correctly
   const crewColorMap = useMemo(() => {
     const map = new Map<string, string>();
     users.forEach((u, i) => map.set(u.id, PALETTE[i % PALETTE.length]));
     return map;
   }, [users]);
 
-  function crewName(id: string | null) {
+  function userName(id: string | null) {
     if (!id) return "Unassigned";
     return users.find((u) => u.id === id)?.name ?? "Unknown";
   }
 
+  const filteredJobs = useMemo(
+    () => jobs.filter((j) => relevantStatuses.includes(j.status)),
+    [jobs, relevantStatuses]
+  );
+
   const conflictIds = useMemo(() => {
-    const scheduled = jobs.filter((j) => j.scheduled_date && j.assigned_to);
+    const scheduled = filteredJobs.filter((j) => j.scheduled_date && j.assigned_to);
     const ids = new Set<string>();
     for (let i = 0; i < scheduled.length; i++) {
       for (let k = i + 1; k < scheduled.length; k++) {
@@ -96,39 +119,36 @@ export default function CalendarView() {
       }
     }
     return ids;
-  }, [jobs]);
+  }, [filteredJobs]);
 
   const events: EventInput[] = useMemo(
     () =>
-      jobs
+      filteredJobs
         .filter((j) => j.scheduled_date)
         .map((j) => ({
-          id: j.id,
-          title: j.customer_name,
-          start: j.scheduled_time
-            ? `${j.scheduled_date}T${j.scheduled_time}`
-            : j.scheduled_date!,
-          allDay: !j.scheduled_time,
+          id:              j.id,
+          title:           j.customer_name,
+          start:           j.scheduled_time
+                             ? `${j.scheduled_date}T${j.scheduled_time}`
+                             : j.scheduled_date!,
+          allDay:          !j.scheduled_time,
           backgroundColor: j.assigned_to
-            ? (crewColorMap.get(j.assigned_to) ?? UNASSIGNED_COLOR)
-            : UNASSIGNED_COLOR,
-          borderColor: conflictIds.has(j.id) ? "#FF3B30" : "transparent",
-          textColor: "#fff",
-          extendedProps: { job: j, hasConflict: conflictIds.has(j.id) },
+                             ? (crewColorMap.get(j.assigned_to) ?? UNASSIGNED_COLOR)
+                             : UNASSIGNED_COLOR,
+          borderColor:     conflictIds.has(j.id) ? "#FF3B30" : "transparent",
+          textColor:       "#fff",
+          extendedProps:   { job: j, hasConflict: conflictIds.has(j.id) },
         })),
-    [jobs, crewColorMap, conflictIds]
+    [filteredJobs, crewColorMap, conflictIds]
   );
 
   const unscheduled = useMemo(
-    () =>
-      jobs.filter(
-        (j) => !j.scheduled_date && ["assigned", "in_progress"].includes(j.status)
-      ),
-    [jobs]
+    () => filteredJobs.filter((j) => !j.scheduled_date),
+    [filteredJobs]
   );
 
   async function handleEventDrop({ event, revert }: EventDropArg) {
-    const job = event.extendedProps.job as Job;
+    const job   = event.extendedProps.job as Job;
     const start = event.start!;
     const newDate = start.toISOString().split("T")[0];
     const newTime = event.allDay
@@ -178,20 +198,27 @@ export default function CalendarView() {
   }
 
   const conflictPairs = conflictIds.size / 2;
+  const isQuotes      = mode === "quotes";
+  const assignedLabel = isQuotes ? "Salesperson" : "Crew Leader";
+  const panelTitle    = isQuotes ? "Quote Details" : "Job Details";
+  const needsLabel    = isQuotes ? "Quote Visits to Schedule" : "Needs Scheduling";
+  const noDateMsg     = isQuotes
+    ? "No date set — open the job to schedule a quote visit."
+    : "No date set — open the job to schedule it.";
 
   return (
     <div style={{ display: "flex", gap: 0, position: "relative" }}>
       <div style={{ flex: 1, minWidth: 0, marginRight: selectedJob ? 376 : 0, transition: "margin-right 0.2s" }}>
 
-        {/* Crew legend */}
+        {/* Legend */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
-          {users.map((u, i) => (
+          {legendUsers.map((u, i) => (
             <div key={u.id} className="flex items-center gap-1.5">
               <div
                 style={{
                   width: 10, height: 10,
                   borderRadius: "50%",
-                  background: PALETTE[i % PALETTE.length],
+                  background: crewColorMap.get(u.id) ?? PALETTE[i % PALETTE.length],
                   flexShrink: 0,
                 }}
               />
@@ -214,7 +241,7 @@ export default function CalendarView() {
           )}
         </div>
 
-        {/* Calendar card */}
+        {/* Calendar */}
         <div
           style={{
             background: "white",
@@ -229,9 +256,9 @@ export default function CalendarView() {
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
             initialView="dayGridMonth"
             headerToolbar={{
-              left: "prev,next today",
+              left:   "prev,next today",
               center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+              right:  "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
             }}
             buttonText={{ today: "Today", month: "Month", week: "Week", day: "Day", list: "List" }}
             height="auto"
@@ -258,15 +285,12 @@ export default function CalendarView() {
           />
         </div>
 
-        {/* Unscheduled jobs */}
+        {/* Unscheduled */}
         {unscheduled.length > 0 && (
           <div style={{ marginTop: 28 }}>
-            <div
-              className="flex items-center gap-2"
-              style={{ marginBottom: 12 }}
-            >
+            <div className="flex items-center gap-2" style={{ marginBottom: 12 }}>
               <span style={{ fontFamily: "var(--font-oswald)", fontSize: 18, color: "#1A1A1A" }}>
-                Needs Scheduling
+                {needsLabel}
               </span>
               <span
                 style={{
@@ -302,12 +326,7 @@ export default function CalendarView() {
                   onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)")}
                   onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
                 >
-                  <div
-                    style={{
-                      fontFamily: "var(--font-inter)", fontWeight: 600,
-                      fontSize: 14, color: "#1A1A1A",
-                    }}
-                  >
+                  <div style={{ fontFamily: "var(--font-inter)", fontWeight: 600, fontSize: 14, color: "#1A1A1A" }}>
                     {j.customer_name}
                   </div>
                   <div style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#888780", marginTop: 2 }}>
@@ -321,12 +340,14 @@ export default function CalendarView() {
                       </span>
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <User size={11} style={{ color: "#888780", flexShrink: 0 }} />
-                    <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A" }}>
-                      {crewName(j.assigned_to)}
-                    </span>
-                  </div>
+                  {j.assigned_to && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <User size={11} style={{ color: "#888780", flexShrink: 0 }} />
+                      <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A" }}>
+                        {userName(j.assigned_to)}
+                      </span>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -339,9 +360,7 @@ export default function CalendarView() {
         <div
           style={{
             position: "fixed",
-            top: 0,
-            right: 0,
-            bottom: 0,
+            top: 0, right: 0, bottom: 0,
             width: 360,
             background: "white",
             borderLeft: "1px solid #D3D1C7",
@@ -352,7 +371,7 @@ export default function CalendarView() {
             flexDirection: "column",
           }}
         >
-          {/* Header */}
+          {/* Panel header */}
           <div
             style={{
               padding: "20px 20px 16px",
@@ -363,7 +382,7 @@ export default function CalendarView() {
             }}
           >
             <span style={{ fontFamily: "var(--font-oswald)", fontSize: 18, color: "#1A1A1A" }}>
-              Job Details
+              {panelTitle}
             </span>
             <button
               onClick={() => setSelectedJob(null)}
@@ -373,43 +392,27 @@ export default function CalendarView() {
             </button>
           </div>
 
-          {/* Body */}
+          {/* Panel body */}
           <div style={{ padding: 20, flex: 1 }}>
             <div
               style={{
                 display: "inline-block",
                 background: STATUS_STYLES[selectedJob.status]?.bg ?? "#eee",
-                color: STATUS_STYLES[selectedJob.status]?.color ?? "#333",
+                color:      STATUS_STYLES[selectedJob.status]?.color ?? "#333",
                 borderRadius: 20,
                 padding: "3px 10px",
                 fontFamily: "var(--font-inter)",
-                fontSize: 12,
-                fontWeight: 500,
+                fontSize: 12, fontWeight: 500,
                 marginBottom: 14,
               }}
             >
               {STATUS_LABELS[selectedJob.status] ?? selectedJob.status}
             </div>
 
-            <div
-              style={{
-                fontFamily: "var(--font-inter)",
-                fontWeight: 700,
-                fontSize: 20,
-                color: "#1A1A1A",
-                marginBottom: 4,
-              }}
-            >
+            <div style={{ fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 20, color: "#1A1A1A", marginBottom: 4 }}>
               {selectedJob.customer_name}
             </div>
-            <div
-              style={{
-                fontFamily: "var(--font-inter)",
-                fontSize: 13,
-                color: "#888780",
-                marginBottom: 20,
-              }}
-            >
+            <div style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#888780", marginBottom: 20 }}>
               {selectedJob.reference_code}
             </div>
 
@@ -433,7 +436,7 @@ export default function CalendarView() {
               <div className="flex items-center gap-3">
                 <User size={15} style={{ color: "#888780", flexShrink: 0 }} />
                 <span style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#1A1A1A" }}>
-                  {crewName(selectedJob.assigned_to)}
+                  {userName(selectedJob.assigned_to)} · {assignedLabel}
                 </span>
               </div>
 
@@ -442,10 +445,7 @@ export default function CalendarView() {
                   <span style={{ fontSize: 14, flexShrink: 0 }}>📅</span>
                   <span style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#1A1A1A" }}>
                     {new Date(selectedJob.scheduled_date + "T12:00:00").toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
+                      weekday: "short", month: "long", day: "numeric", year: "numeric",
                     })}
                     {selectedJob.scheduled_time && (
                       <span style={{ color: "#888780" }}>
@@ -457,93 +457,78 @@ export default function CalendarView() {
               ) : (
                 <div
                   style={{
-                    background: "#FFF3CD",
-                    border: "1px solid #FAEEDA",
-                    borderRadius: 8,
-                    padding: "10px 12px",
-                    fontFamily: "var(--font-inter)",
-                    fontSize: 13,
-                    color: "#856404",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 8,
+                    background: "#FFF3CD", border: "1px solid #FAEEDA",
+                    borderRadius: 8, padding: "10px 12px",
+                    fontFamily: "var(--font-inter)", fontSize: 13, color: "#856404",
+                    display: "flex", alignItems: "flex-start", gap: 8,
                   }}
                 >
                   <AlertTriangle size={14} style={{ marginTop: 1, flexShrink: 0 }} />
-                  No date set — open the job to schedule it.
+                  {noDateMsg}
                 </div>
               )}
 
               {conflictIds.has(selectedJob.id) && (
                 <div
                   style={{
-                    background: "#FFE5E5",
-                    border: "1px solid #FFCCCC",
-                    borderRadius: 8,
-                    padding: "10px 12px",
-                    fontFamily: "var(--font-inter)",
-                    fontSize: 13,
-                    color: "#C0392B",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 8,
+                    background: "#FFE5E5", border: "1px solid #FFCCCC",
+                    borderRadius: 8, padding: "10px 12px",
+                    fontFamily: "var(--font-inter)", fontSize: 13, color: "#C0392B",
+                    display: "flex", alignItems: "flex-start", gap: 8,
                   }}
                 >
                   <AlertTriangle size={14} style={{ marginTop: 1, flexShrink: 0 }} />
-                  Scheduling conflict — {crewName(selectedJob.assigned_to)} has another job at this time.
+                  Scheduling conflict — {userName(selectedJob.assigned_to)} has another appointment at this time.
                 </div>
               )}
             </div>
 
-            {selectedJob.crew_notes && (
+            {isQuotes && selectedJob.internal_notes && (
               <div style={{ marginTop: 20 }}>
                 <div
                   style={{
-                    fontFamily: "var(--font-inter)",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#888780",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    marginBottom: 6,
+                    fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 600,
+                    color: "#888780", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6,
+                  }}
+                >
+                  Internal Notes
+                </div>
+                <div style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#1A1A1A", lineHeight: 1.55 }}>
+                  {selectedJob.internal_notes}
+                </div>
+              </div>
+            )}
+
+            {!isQuotes && selectedJob.crew_notes && (
+              <div style={{ marginTop: 20 }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 600,
+                    color: "#888780", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6,
                   }}
                 >
                   Crew Notes
                 </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-inter)",
-                    fontSize: 14,
-                    color: "#1A1A1A",
-                    lineHeight: 1.55,
-                  }}
-                >
+                <div style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#1A1A1A", lineHeight: 1.55 }}>
                   {selectedJob.crew_notes}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Footer */}
+          {/* Panel footer */}
           <div style={{ padding: "16px 20px", borderTop: "1px solid #D3D1C7" }}>
             <Link
               href={`/dashboard/jobs/${selectedJob.id}`}
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                background: "#1C3A2B",
-                color: "white",
-                borderRadius: 10,
-                padding: "11px 16px",
-                fontFamily: "var(--font-inter)",
-                fontSize: 14,
-                fontWeight: 500,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                background: "#1C3A2B", color: "white",
+                borderRadius: 10, padding: "11px 16px",
+                fontFamily: "var(--font-inter)", fontSize: 14, fontWeight: 500,
                 textDecoration: "none",
               }}
             >
-              View Full Job
+              {isQuotes ? "Open Job / Schedule Visit" : "View Full Job"}
               <ExternalLink size={14} />
             </Link>
           </div>
