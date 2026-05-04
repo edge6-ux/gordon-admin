@@ -2,17 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Loader2, Check } from "lucide-react";
-import type { Job, JobStatus } from "@/lib/types";
+import type { Job } from "@/lib/types";
 
-const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
-  { value: "submitted", label: "Submitted" },
-  { value: "reviewed", label: "Reviewed" },
-  { value: "quoted", label: "Quoted" },
-  { value: "assigned", label: "Assigned" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "complete", label: "Complete" },
-  { value: "cancelled", label: "Cancelled" },
-];
+const STATUS_CONFIG: Record<string, { bg: string; color: string; label: string }> = {
+  submitted:   { bg: "#E6F1FB", color: "#185FA5", label: "Submitted" },
+  reviewed:    { bg: "#F3EFFE", color: "#5B21B6", label: "Reviewed" },
+  quoted:      { bg: "#FAEEDA", color: "#633806", label: "Quoted" },
+  assigned:    { bg: "#FFF0E6", color: "#C2410C", label: "Assigned" },
+  in_progress: { bg: "#FEF3CD", color: "#92400E", label: "In Progress" },
+  complete:    { bg: "#EAF3DE", color: "#27500A", label: "Complete" },
+  cancelled:   { bg: "#F3F4F6", color: "#4A4A4A", label: "Cancelled" },
+};
 
 type SaveState = "idle" | "saving" | "saved";
 
@@ -37,7 +37,6 @@ const labelStyle = {
 };
 
 export default function JobManagement({ job }: Props) {
-  const [status, setStatus] = useState<JobStatus>(job.status);
   const [scheduledDate, setScheduledDate] = useState(job.scheduled_date ?? "");
   const [scheduledTime, setScheduledTime] = useState(job.scheduled_time ?? "");
   const [assignedTo, setAssignedTo] = useState(job.assigned_to ?? "");
@@ -67,12 +66,6 @@ export default function JobManagement({ job }: Props) {
     } catch {
       setSaveState("idle");
     }
-  }
-
-  function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const val = e.target.value as JobStatus;
-    setStatus(val);
-    save({ status: val });
   }
 
   function handleDateChange(value: string) {
@@ -109,18 +102,22 @@ export default function JobManagement({ job }: Props) {
           <div className="mb-1.5" style={labelStyle}>
             Status
           </div>
-          <select
-            value={status}
-            onChange={handleStatusChange}
-            className={inputClass}
-            style={inputStyle}
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          {(() => {
+            const cfg = STATUS_CONFIG[job.status] ?? STATUS_CONFIG.submitted;
+            return (
+              <span
+                className="inline-flex items-center px-3 py-1.5 rounded-xl font-medium"
+                style={{
+                  background:  cfg.bg,
+                  color:       cfg.color,
+                  fontFamily:  "var(--font-inter)",
+                  fontSize:    "13px",
+                }}
+              >
+                {cfg.label}
+              </span>
+            );
+          })()}
         </div>
 
         {/* Schedule */}

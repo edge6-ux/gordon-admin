@@ -34,10 +34,10 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["master_admin", "admin"],
   },
   {
-    label: "Inbox",
-    href:  "/dashboard/inbox",
+    label: "Workstation",
+    href:  "/dashboard/workstation",
     icon:  Inbox,
-    roles: ["master_admin", "admin"],
+    roles: ["master_admin", "admin", "sales", "crew_leader"],
   },
   {
     label: "Jobs",

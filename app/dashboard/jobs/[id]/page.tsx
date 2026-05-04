@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-server";
 import { fmtDateTime, timeAgo, formatPhone } from "@/lib/utils";
 import type { Job, Submission, AIResult, Flag, SitePin } from "@/lib/types";
 import JobManagement from "@/components/jobs/JobManagement";
+import PushToSalesButton from "@/components/jobs/PushToSalesButton";
 import PhotoLightbox from "@/components/jobs/PhotoLightbox";
 import SiteMap from "@/components/quotes/SiteMap";
 import DeleteButton from "@/components/ui/DeleteButton";
@@ -450,6 +451,9 @@ export default async function JobDetailPage({
 
       {/* Admin actions */}
       <div className="flex items-center gap-2 mb-6 flex-wrap">
+        {job.status === "submitted" && (
+          <PushToSalesButton jobId={id} />
+        )}
         <Link
           href={`/dashboard/jobs/${id}/edit`}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-colors hover:bg-[#F5F2ED]"

@@ -31,6 +31,7 @@ const ALLOWED_FIELDS = [
   "scheduled_date",
   "scheduled_time",
   "assigned_to",
+  "report_data",
 ] as const;
 
 export async function PATCH(
