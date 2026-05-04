@@ -11,6 +11,8 @@ import {
   Settings,
   LogOut,
   UserCog,
+  CalendarDays,
+  Inbox,
 } from "lucide-react";
 import { usePermissions } from "@/lib/permissions-context";
 import type { Role } from "@/lib/permissions";
@@ -32,6 +34,12 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["master_admin", "admin"],
   },
   {
+    label: "Inbox",
+    href:  "/dashboard/inbox",
+    icon:  Inbox,
+    roles: ["master_admin", "admin"],
+  },
+  {
     label: "Jobs",
     href:  "/dashboard/jobs",
     icon:  Briefcase,
@@ -48,6 +56,12 @@ const NAV_ITEMS: NavItem[] = [
     href:  "/dashboard/quotes",
     icon:  FileText,
     roles: ["master_admin", "admin", "sales"],
+  },
+  {
+    label: "Schedule",
+    href:  "/dashboard/schedule",
+    icon:  CalendarDays,
+    roles: ["master_admin", "admin", "crew_leader"],
   },
   {
     label: "Crew",

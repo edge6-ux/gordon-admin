@@ -12,7 +12,7 @@ export async function GET() {
     String(now.getDate()).padStart(2, "0"),
   ].join("-");
 
-  const [r1, r2, r3, r4, r5, r6, r7] = await Promise.all([
+  const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.all([
     // New leads today
     supabaseAdmin
       .from("submissions")
@@ -65,6 +65,14 @@ export async function GET() {
       .select("total_cost")
       .eq("status", "accepted")
       .gte("created_at", firstOfMonth.toISOString()),
+
+    // Jobs needing crew assignment (assigned status, no assigned_to)
+    supabaseAdmin
+      .from("jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "assigned")
+      .eq("assigned_to", "")
+      .is("deleted_at", null),
   ]);
 
   const revenueThisMonth = ((r7.data ?? []) as Array<{ total_cost: number }>).reduce(
@@ -79,6 +87,7 @@ export async function GET() {
       pendingQuotes:      r3.count ?? 0,
       completedThisMonth: r4.count ?? 0,
       revenueThisMonth,
+      needsAssignment:    r8.count ?? 0,
     },
     upcomingJobs:  r5.data ?? [],
     attentionJobs: r6.data ?? [],

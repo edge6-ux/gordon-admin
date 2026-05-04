@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+function generateReferenceCode(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `GP-${y}${m}${d}-${rand}`;
+}
 
 export async function GET(
   _req: NextRequest,
@@ -82,11 +94,80 @@ export async function PATCH(
   // Sync job status when quote status changes
   const newStatus = body.status as string | undefined;
   const jobId = current?.job_id;
-  if (jobId && current && newStatus && newStatus !== current.status) {
-    if (newStatus === "accepted") {
-      await supabaseAdmin.from("jobs").update({ status: "assigned" }).eq("id", jobId);
-    } else if (newStatus === "declined") {
-      await supabaseAdmin.from("jobs").update({ status: "reviewed" }).eq("id", jobId);
+
+  if (newStatus && current && newStatus !== current.status) {
+    if (jobId) {
+      // Quote already linked to a job — just sync status
+      if (newStatus === "accepted") {
+        await supabaseAdmin.from("jobs").update({ status: "assigned" }).eq("id", jobId);
+      } else if (newStatus === "declined") {
+        await supabaseAdmin.from("jobs").update({ status: "reviewed" }).eq("id", jobId);
+      }
+    } else if (newStatus === "accepted") {
+      // No linked job — create one automatically from the quote data
+      const referenceCode = generateReferenceCode();
+      const phone = (quote.customer_phone as string ?? "").replace(/\D/g, "");
+
+      const { data: submission } = await supabaseAdmin
+        .from("submissions")
+        .insert({
+          customer_name:    quote.customer_name,
+          customer_phone:   phone,
+          customer_email:   quote.customer_email ?? "",
+          property_address: quote.property_address ?? "",
+          service_type:     "tree_service",
+          additional_notes: quote.description_of_work ?? "",
+          source:           "quote",
+          status:           "new",
+          reference_code:   referenceCode,
+        })
+        .select()
+        .single();
+
+      if (submission) {
+        const { data: newJob } = await supabaseAdmin
+          .from("jobs")
+          .insert({
+            submission_id:    submission.id,
+            customer_name:    quote.customer_name,
+            customer_phone:   phone,
+            customer_email:   quote.customer_email ?? "",
+            property_address: quote.property_address ?? "",
+            status:           "assigned",
+            reference_code:   referenceCode,
+          })
+          .select()
+          .single();
+
+        if (newJob) {
+          // Link job back to quote
+          await supabaseAdmin
+            .from("quotes")
+            .update({ job_id: newJob.id })
+            .eq("id", id);
+
+          // Notify admin
+          const adminEmail = process.env.ADMIN_EMAIL;
+          if (adminEmail) {
+            await resend.emails.send({
+              from: "Gordon Pro Tree Service <jobs@gordonprotreeservice.com>",
+              to:   adminEmail,
+              subject: `Quote Accepted — Job ${referenceCode} Ready to Assign`,
+              text: [
+                `A quote has been accepted and a new job has been created.`,
+                ``,
+                `Customer: ${quote.customer_name}`,
+                `Phone:    ${quote.customer_phone}`,
+                `Address:  ${quote.property_address ?? "N/A"}`,
+                `Job Ref:  ${referenceCode}`,
+                `Total:    $${(quote.total_cost ?? 0).toFixed(2)}`,
+                ``,
+                `Please log in to assign this job to a crew.`,
+              ].join("\n"),
+            }).catch((err: unknown) => console.error("Admin notify email failed:", err));
+          }
+        }
+      }
     }
   }
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase-client";
 import { timeAgo, formatCurrency } from "@/lib/utils";
+import { usePermissions } from "@/lib/permissions-context";
 import type { Submission, Job, JobStatus } from "@/lib/types";
 import {
   UserPlus,
@@ -17,15 +18,18 @@ import {
   TrendingUp,
   X,
   Calendar,
+  Inbox,
+  UserCheck,
 } from "lucide-react";
 
 type DashboardData = {
   metrics: {
-    newLeadsToday: number;
-    activeJobs: number;
-    pendingQuotes: number;
+    newLeadsToday:      number;
+    activeJobs:         number;
+    pendingQuotes:      number;
     completedThisMonth: number;
-    revenueThisMonth: number;
+    revenueThisMonth:   number;
+    needsAssignment:    number;
   };
   upcomingJobs:  Job[];
   attentionJobs: Job[];
@@ -86,6 +90,9 @@ function SkeletonRow({ last = false }: { last?: boolean }) {
 }
 
 export default function Dashboard() {
+  const permissions = usePermissions();
+  const isMasterAdmin = permissions.role === "master_admin";
+
   const now       = new Date();
   const todayStr  = [
     now.getFullYear(),
@@ -137,7 +144,10 @@ export default function Dashboard() {
         { label: "Active Jobs",          display: String(data.metrics.activeJobs),                icon: Briefcase,   iconBg: "#FAEEDA", iconColor: "#C8922A", small: false },
         { label: "Pending Quotes",       display: String(data.metrics.pendingQuotes),             icon: FileText,    iconBg: "#E6F1FB", iconColor: "#185FA5", small: false },
         { label: "Completed This Month", display: String(data.metrics.completedThisMonth),        icon: CheckCircle, iconBg: "#EAF3DE", iconColor: "#1C3A2B", small: false },
-        { label: "Revenue This Month",   display: formatCurrency(data.metrics.revenueThisMonth),  icon: TrendingUp,  iconBg: "#EAF3DE", iconColor: "#1C3A2B", small: true  },
+        ...(isMasterAdmin
+          ? [{ label: "Revenue This Month", display: formatCurrency(data.metrics.revenueThisMonth), icon: TrendingUp, iconBg: "#EAF3DE", iconColor: "#1C3A2B", small: true }]
+          : [{ label: "Needs Assignment",   display: String(data.metrics.needsAssignment),          icon: UserCheck,  iconBg: "#FFF0EF", iconColor: "#C0392B", small: false }]
+        ),
       ]
     : [];
 
@@ -485,13 +495,23 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-3 flex-wrap">
           <Link
-            href="/dashboard/quotes/new"
+            href="/dashboard/inbox"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white hover:opacity-90 transition-opacity"
-            style={{ background: "#C8922A", fontFamily: "var(--font-oswald)", fontSize: "14px" }}
+            style={{ background: "#1C3A2B", fontFamily: "var(--font-oswald)", fontSize: "14px" }}
           >
-            <Plus size={16} />
-            New Quote
+            <Inbox size={16} />
+            Open Inbox
           </Link>
+          {isMasterAdmin && (
+            <Link
+              href="/dashboard/quotes/new"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white hover:opacity-90 transition-opacity"
+              style={{ background: "#C8922A", fontFamily: "var(--font-oswald)", fontSize: "14px" }}
+            >
+              <Plus size={16} />
+              New Quote
+            </Link>
+          )}
           <Link
             href="/dashboard/jobs"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl transition-colors hover:bg-[#F0F7F3]"
