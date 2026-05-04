@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { Resend } from "resend";
+import { generateReferenceCode } from "@/lib/referenceCode";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -25,18 +26,6 @@ function corsHeaders(req: NextRequest): Record<string, string> {
 // Preflight
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
-}
-
-// ─── Reference code ───────────────────────────────────────────────────────────
-
-function generateReferenceCode(): string {
-  const now  = new Date();
-  const y    = now.getFullYear();
-  const m    = String(now.getMonth() + 1).padStart(2, "0");
-  const d    = String(now.getDate()).padStart(2, "0");
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  const ts   = now.getTime().toString(36).slice(-4).toUpperCase();
-  return `GP-${y}${m}${d}-${ts}${rand}`;
 }
 
 // ─── Timeframe label ──────────────────────────────────────────────────────────
