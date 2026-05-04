@@ -35,7 +35,8 @@ function generateReferenceCode(): string {
   const m    = String(now.getMonth() + 1).padStart(2, "0");
   const d    = String(now.getDate()).padStart(2, "0");
   const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `GP-${y}${m}${d}-${rand}`;
+  const ts   = now.getTime().toString(36).slice(-4).toUpperCase();
+  return `GP-${y}${m}${d}-${ts}${rand}`;
 }
 
 // ─── Timeframe label ──────────────────────────────────────────────────────────
