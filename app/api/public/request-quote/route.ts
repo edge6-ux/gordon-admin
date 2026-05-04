@@ -157,7 +157,6 @@ export async function POST(req: NextRequest) {
       property_address: propertyAddress,
       status:           "submitted",
       reference_code:   referenceCode,
-      internal_notes:   internalNotes,
     })
     .select()
     .single();
