@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
 
   const { data: job, error: jobError } = await supabaseAdmin
     .from("jobs")
-    .insert({
+    .upsert({
       submission_id:    submission.id,
       customer_name:    customerName,
       customer_phone:   phone,
@@ -158,12 +158,12 @@ export async function POST(req: NextRequest) {
       property_address: propertyAddress,
       status:           "submitted",
       reference_code:   referenceCode,
-    })
+    }, { onConflict: "reference_code" })
     .select()
     .single();
 
   if (jobError || !job) {
-    console.error("Job insert error:", jobError);
+    console.error("Job upsert error:", jobError);
     return NextResponse.json(
       { error: jobError?.message ?? "Failed to create job record" },
       { status: 500, headers }
