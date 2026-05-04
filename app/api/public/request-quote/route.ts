@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
   if (subError || !submission) {
     console.error("Submission insert error:", subError);
     return NextResponse.json(
-      { error: "Failed to save request" },
+      { error: subError?.message ?? "Failed to save request" },
       { status: 500, headers }
     );
   }
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
   if (jobError || !job) {
     console.error("Job insert error:", jobError);
     return NextResponse.json(
-      { error: "Failed to create job record" },
+      { error: jobError?.message ?? "Failed to create job record" },
       { status: 500, headers }
     );
   }
