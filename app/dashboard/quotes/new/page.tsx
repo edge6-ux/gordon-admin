@@ -227,7 +227,6 @@ function NewQuoteInner() {
 
   // Quote metadata
   const [date, setDate]               = useState(today);
-  const [salesRep, setSalesRep]       = useState("");
   const [wetDry, setWetDry]           = useState<"wet" | "dry" | "">("");
   const [leadSource, setLeadSource]   = useState("");
   const [hoursEstimate, setHoursEstimate] = useState("");
@@ -334,7 +333,6 @@ function NewQuoteInner() {
           customerEmail,
           propertyAddress,
           date,
-          salesRep,
           wetDry,
           leadSource,
           hoursEstimate,
@@ -417,19 +415,6 @@ function NewQuoteInner() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className={inputClass}
-                style={inputStyle}
-              />
-            </div>
-
-            {/* Sales Rep */}
-            <div>
-              <Label>Sales Rep</Label>
-              <input
-                type="text"
-                value={salesRep}
-                onChange={(e) => setSalesRep(e.target.value)}
-                placeholder="Name of sales agent on site"
                 className={inputClass}
                 style={inputStyle}
               />

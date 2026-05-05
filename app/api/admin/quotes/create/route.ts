@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 function generateReferenceCode(): string {
@@ -11,6 +13,19 @@ function generateReferenceCode(): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Resolve the current user so we can auto-assign the sales rep
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+  );
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabaseAdmin.from("user_profiles").select("name").eq("id", user.id).single()
+    : { data: null };
+  const salesRep = profile?.name ?? "";
+
   const {
     jobId,
     customerName,
@@ -18,7 +33,6 @@ export async function POST(req: NextRequest) {
     customerEmail,
     propertyAddress,
     date,
-    salesRep,
     wetDry,
     leadSource,
     hoursEstimate,
