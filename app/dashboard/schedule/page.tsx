@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -28,7 +29,9 @@ const CalendarView = dynamic(() => import("./_CalendarView"), {
 
 export type ScheduleMode = "quotes" | "jobs";
 
-export default function SchedulePage() {
+function SchedulePageInner() {
+  const searchParams  = useSearchParams();
+  const focusJobId    = searchParams.get("jobId") ?? undefined;
   const [mode, setMode] = useState<ScheduleMode>("jobs");
 
   return (
@@ -105,7 +108,15 @@ export default function SchedulePage() {
         })}
       </div>
 
-      <CalendarView mode={mode} />
+      <CalendarView mode={mode} focusJobId={focusJobId} />
     </div>
+  );
+}
+
+export default function SchedulePage() {
+  return (
+    <Suspense fallback={null}>
+      <SchedulePageInner />
+    </Suspense>
   );
 }

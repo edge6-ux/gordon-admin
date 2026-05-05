@@ -132,7 +132,7 @@ function ActionLink({ href, label, accentColor, accentBg }: { href: string; labe
 // ─── Admin / Master Admin view ────────────────────────────────────────────────
 
 const ADMIN_SECTIONS = [
-  { key: "readyToAssign"      as const, label: "Ready to Assign & Schedule", description: "Quote accepted — assign a crew leader and confirm the date.", icon: UserCheck,    accentColor: "#C0392B", accentBg: "#FFF0EF", actionLabel: "Assign",       actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
+  { key: "readyToAssign"      as const, label: "Ready to Assign & Schedule", description: "Quote accepted — assign a crew leader and confirm the date.", icon: UserCheck,    accentColor: "#C0392B", accentBg: "#FFF0EF", actionLabel: "Schedule",     actionHref: (j: Job) => `/dashboard/schedule?jobId=${j.id}` },
   { key: "awaitingAcceptance" as const, label: "Awaiting Acceptance",        description: "Quote presented to customer — waiting for their sign-off.",  icon: FileCheck,    accentColor: "#C8922A", accentBg: "#FFFBF0", actionLabel: "View Quote",    actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
   { key: "pendingReview"      as const, label: "Pending Review",             description: "New submissions waiting to be reviewed.",                     icon: ClipboardList, accentColor: "#185FA5", accentBg: "#EFF6FF", actionLabel: "Review",       actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
   { key: "needsQuote"         as const, label: "Needs a Quote",              description: "Pushed to sales — awaiting quote.",                           icon: FileSignature, accentColor: "#5B21B6", accentBg: "#F5F3FF", actionLabel: "Create Quote", actionHref: (j: Job) => `/dashboard/quotes/new?jobId=${j.id}` },

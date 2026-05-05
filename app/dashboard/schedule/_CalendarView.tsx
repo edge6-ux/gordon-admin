@@ -55,7 +55,7 @@ function formatTime(time: string): string {
   return `${hour}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-export default function CalendarView({ mode }: { mode: ScheduleMode }) {
+export default function CalendarView({ mode, focusJobId }: { mode: ScheduleMode; focusJobId?: string }) {
   const [jobs,        setJobs]        = useState<Job[]>([]);
   const [users,       setUsers]       = useState<UserProfile[]>([]);
   const [loading,     setLoading]     = useState(true);
@@ -66,10 +66,18 @@ export default function CalendarView({ mode }: { mode: ScheduleMode }) {
       fetch("/api/admin/jobs").then((r) => r.json()),
       fetch("/api/admin/users").then((r) => r.json()),
     ]).then(([jobsData, usersData]) => {
-      setJobs(Array.isArray(jobsData) ? jobsData : []);
+      const loadedJobs: Job[] = Array.isArray(jobsData) ? jobsData : [];
+      setJobs(loadedJobs);
       setUsers(Array.isArray(usersData) ? usersData : []);
+      // Auto-open the panel for the job coming from the workstation
+      if (focusJobId) {
+        const target = loadedJobs.find((j) => j.id === focusJobId);
+        if (target) setSelectedJob(target);
+      }
       setLoading(false);
     });
+  // focusJobId is intentionally excluded — we only want this to fire once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Close panel when switching modes
