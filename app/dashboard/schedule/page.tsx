@@ -30,9 +30,10 @@ const CalendarView = dynamic(() => import("./_CalendarView"), {
 export type ScheduleMode = "quotes" | "jobs";
 
 function SchedulePageInner() {
-  const searchParams  = useSearchParams();
-  const focusJobId    = searchParams.get("jobId") ?? undefined;
-  const [mode, setMode] = useState<ScheduleMode>("jobs");
+  const searchParams = useSearchParams();
+  const focusJobId   = searchParams.get("jobId") ?? undefined;
+  const initialMode  = searchParams.get("mode") === "quotes" ? "quotes" : "jobs";
+  const [mode, setMode] = useState<ScheduleMode>(initialMode);
 
   return (
     <div>
