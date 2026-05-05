@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  UserCheck, CalendarClock, ClipboardList, FileSignature,
+  UserCheck, ClipboardList, FileSignature,
   CalendarCheck2, MapPin, User, Clock, ArrowRight,
   CheckCircle2, FileText, Users, AlertTriangle,
 } from "lucide-react";
@@ -19,11 +19,10 @@ type CrewMember = { id: string; name: string; role: string };
 type AdminData = {
   role: "master_admin" | "admin";
   sections: {
-    needsAssignment: Job[];
-    needsScheduling: Job[];
-    pendingReview:   Job[];
-    needsQuote:      Job[];
-    today:           Job[];
+    readyToAssign: Job[];
+    pendingReview: Job[];
+    needsQuote:    Job[];
+    today:         Job[];
   };
   profiles: Record<string, Profile>;
 };
@@ -132,15 +131,14 @@ function ActionLink({ href, label, accentColor, accentBg }: { href: string; labe
 // ─── Admin / Master Admin view ────────────────────────────────────────────────
 
 const ADMIN_SECTIONS = [
-  { key: "needsAssignment" as const, label: "Needs Crew Assignment", description: "Accepted jobs waiting for a crew member.", icon: UserCheck,      accentColor: "#C0392B", accentBg: "#FFF0EF", actionLabel: "Assign",       actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
-  { key: "needsScheduling" as const, label: "Needs Scheduling",      description: "Crew assigned but no date set.",          icon: CalendarClock,   accentColor: "#C8922A", accentBg: "#FFFBF0", actionLabel: "Schedule",     actionHref: ()       => `/dashboard/schedule` },
-  { key: "pendingReview"   as const, label: "Pending Review",        description: "New submissions to review.",              icon: ClipboardList,   accentColor: "#185FA5", accentBg: "#EFF6FF", actionLabel: "Review",       actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
-  { key: "needsQuote"      as const, label: "Needs a Quote",         description: "Pushed to sales — awaiting quote.",       icon: FileSignature,   accentColor: "#5B21B6", accentBg: "#F5F3FF", actionLabel: "Create Quote", actionHref: (j: Job) => `/dashboard/quotes/new?jobId=${j.id}` },
-  { key: "today"           as const, label: "Today's Jobs",          description: "Scheduled for today.",                    icon: CalendarCheck2,  accentColor: "#1C3A2B", accentBg: "#EAF3DE", actionLabel: "View",         actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
+  { key: "readyToAssign" as const, label: "Ready to Assign & Schedule", description: "Quote accepted — assign a crew leader and confirm the date.", icon: UserCheck,     accentColor: "#C0392B", accentBg: "#FFF0EF", actionLabel: "Assign", actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
+  { key: "pendingReview" as const, label: "Pending Review",             description: "New submissions waiting to be reviewed.",                     icon: ClipboardList, accentColor: "#185FA5", accentBg: "#EFF6FF", actionLabel: "Review", actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
+  { key: "needsQuote"    as const, label: "Needs a Quote",              description: "Pushed to sales — awaiting quote.",                           icon: FileSignature, accentColor: "#5B21B6", accentBg: "#F5F3FF", actionLabel: "Create Quote", actionHref: (j: Job) => `/dashboard/quotes/new?jobId=${j.id}` },
+  { key: "today"         as const, label: "Today's Jobs",               description: "Scheduled for today.",                                        icon: CalendarCheck2, accentColor: "#1C3A2B", accentBg: "#EAF3DE", actionLabel: "View",   actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
 ];
 
 function AdminWorkstation({ data }: { data: AdminData }) {
-  const total = ADMIN_SECTIONS.slice(0, 4).reduce((n, s) => n + (data.sections[s.key]?.length ?? 0), 0);
+  const total = ADMIN_SECTIONS.slice(0, 3).reduce((n, s) => n + (data.sections[s.key]?.length ?? 0), 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -168,10 +166,31 @@ function AdminWorkstation({ data }: { data: AdminData }) {
                         <MapPin size={11} style={{ color: "#888780" }} />{job.property_address}
                       </span>
                     )}
-                    {s.key === "needsScheduling" && job.assigned_to && (
-                      <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A", display: "flex", alignItems: "center", gap: 3 }}>
-                        <User size={11} style={{ color: "#888780" }} />{crewName(data.profiles, job.assigned_to)}
-                      </span>
+                    {s.key === "readyToAssign" && (
+                      <>
+                        {!job.assigned_to && (
+                          <span style={{ display: "flex", alignItems: "center", gap: 3, background: "#FFF0EF", color: "#C0392B", borderRadius: 20, padding: "1px 7px", fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 500 }}>
+                            <User size={10} /> No crew
+                          </span>
+                        )}
+                        {job.assigned_to && (
+                          <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A", display: "flex", alignItems: "center", gap: 3 }}>
+                            <User size={11} style={{ color: "#888780" }} />{crewName(data.profiles, job.assigned_to)}
+                          </span>
+                        )}
+                        {!job.scheduled_date && (
+                          <span style={{ display: "flex", alignItems: "center", gap: 3, background: "#FFF3CD", color: "#856404", borderRadius: 20, padding: "1px 7px", fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 500 }}>
+                            <Clock size={10} /> No date
+                          </span>
+                        )}
+                        {job.scheduled_date && (
+                          <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A", display: "flex", alignItems: "center", gap: 3 }}>
+                            <Clock size={11} style={{ color: "#888780" }} />
+                            {new Date(job.scheduled_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            {job.scheduled_time ? ` @ ${formatTime(job.scheduled_time)}` : ""}
+                          </span>
+                        )}
+                      </>
                     )}
                     {s.key === "today" && (
                       <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#4A4A4A", display: "flex", alignItems: "center", gap: 3 }}>

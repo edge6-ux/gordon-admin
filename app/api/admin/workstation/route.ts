@@ -47,11 +47,11 @@ export async function GET() {
     return NextResponse.json({
       role,
       sections: {
-        needsAssignment: allAssigned.filter((j) => !j.assigned_to),
-        needsScheduling: allAssigned.filter((j) => j.assigned_to && !j.scheduled_date),
-        pendingReview:   submittedRes.data ?? [],
-        needsQuote:      reviewedRes.data  ?? [],
-        today:           todayRes.data     ?? [],
+        // Jobs where quote was accepted but crew or schedule not yet confirmed
+        readyToAssign: allAssigned.filter((j) => !j.assigned_to || !j.scheduled_date),
+        pendingReview: submittedRes.data ?? [],
+        needsQuote:    reviewedRes.data  ?? [],
+        today:         todayRes.data     ?? [],
       },
       profiles,
     });
