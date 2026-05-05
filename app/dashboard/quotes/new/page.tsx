@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, Zap, Droplets } from "lucide-react";
 import PhoneInput from "@/components/ui/PhoneInput";
 import SignaturePad from "@/components/quotes/SignaturePad";
 import SiteMap from "@/components/quotes/SiteMap";
@@ -26,12 +26,29 @@ const LEAD_SOURCE_OPTIONS = [
 ];
 
 const NOTES_ITEMS = [
-  { label: "Pending HOA",     key: "pendingHoa"      },
-  { label: "City Permit",     key: "cityPermit"      },
-  { label: "811 Locate",      key: "locate811"       },
-  { label: "Main Lines",      key: "mainLines"       },
-  { label: "Power Drop",      key: "powerDrop"       },
-  { label: "Arborist Onsite", key: "arboristOnsite"  },
+  { label: "Pending HOA",     key: "pendingHoa"     },
+  { label: "City Permit",     key: "cityPermit"     },
+  { label: "811 Locate",      key: "locate811"      },
+  { label: "Arborist Onsite", key: "arboristOnsite" },
+] as const;
+
+const HAZARD_ITEMS = [
+  {
+    key:      "electrical" as const,
+    label:    "Electrical Hazard",
+    sublabel: "Power lines, drops, or live wires near work area",
+    icon:     Zap,
+    color:    "#C8922A",
+    bg:       "#FFF3CD",
+  },
+  {
+    key:      "waterPipesSeptic" as const,
+    label:    "Water / Pipes / Septic",
+    sublabel: "Underground water mains, pipes, or septic systems",
+    icon:     Droplets,
+    color:    "#185FA5",
+    bg:       "#E6F1FB",
+  },
 ] as const;
 
 const EQUIPMENT_ITEMS = [
@@ -43,7 +60,8 @@ const EQUIPMENT_ITEMS = [
   "Alturnamats", "Lift",
 ];
 
-type NotesKey = typeof NOTES_ITEMS[number]["key"];
+type NotesKey   = typeof NOTES_ITEMS[number]["key"];
+type HazardKey  = typeof HAZARD_ITEMS[number]["key"];
 type JobWithSub = Job & { submission: Submission | null };
 
 // ─── Shared UI atoms ──────────────────────────────────────────────────────────
@@ -233,13 +251,21 @@ function NewQuoteInner() {
 
   // Notes checkboxes
   const [notes, setNotes] = useState<Record<NotesKey, boolean>>({
-    pendingHoa: false,
-    cityPermit: false,
-    locate811: false,
-    mainLines: false,
-    powerDrop: false,
+    pendingHoa:     false,
+    cityPermit:     false,
+    locate811:      false,
     arboristOnsite: false,
   });
+
+  // Hazard toggles (map to existing power_drop / main_lines columns)
+  const [hazards, setHazards] = useState<Record<HazardKey, boolean>>({
+    electrical:       false,
+    waterPipesSeptic: false,
+  });
+
+  function toggleHazard(key: HazardKey) {
+    setHazards((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   // Description
   const [descriptionOfWork, setDescriptionOfWork] = useState("");
@@ -336,12 +362,12 @@ function NewQuoteInner() {
           wetDry,
           leadSource,
           hoursEstimate,
-          pendingHoa: notes.pendingHoa,
-          cityPermit: notes.cityPermit,
-          locate811: notes.locate811,
-          mainLines: notes.mainLines,
-          powerDrop: notes.powerDrop,
+          pendingHoa:     notes.pendingHoa,
+          cityPermit:     notes.cityPermit,
+          locate811:      notes.locate811,
           arboristOnsite: notes.arboristOnsite,
+          powerDrop:      hazards.electrical,
+          mainLines:      hazards.waterPipesSeptic,
           descriptionOfWork,
           siteMapPins,
           equipment: equipmentNeeded ? equipment : [],
@@ -559,7 +585,59 @@ function NewQuoteInner() {
           </div>
         </div>
 
-        {/* ── Section 3: Description of Work ── */}
+        {/* ── Section 3: Hazards ── */}
+        <div>
+          <SectionHeader>Hazards</SectionHeader>
+          <div className="grid grid-cols-2 gap-4">
+            {HAZARD_ITEMS.map(({ key, label, sublabel, icon: Icon, color, bg }) => {
+              const active = hazards[key];
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => toggleHazard(key)}
+                  className="text-left transition-all"
+                  style={{
+                    padding: "18px 20px",
+                    borderRadius: 14,
+                    border: `2px solid ${active ? color : "#E5E7EB"}`,
+                    background: active ? bg : "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 44, height: 44, borderRadius: 12, marginBottom: 12,
+                      background: active ? color : "#F3F4F6",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "background 0.15s",
+                    }}
+                  >
+                    <Icon size={22} style={{ color: active ? "white" : "#888780" }} />
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-inter)", fontWeight: 600,
+                      fontSize: 14, color: active ? color : "#1A1A1A",
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-inter)", fontSize: 12,
+                      color: "#888780", marginTop: 4, lineHeight: 1.4,
+                    }}
+                  >
+                    {sublabel}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Section 4: Description of Work ── */}
         <div>
           <SectionHeader>Description of Work</SectionHeader>
           <textarea

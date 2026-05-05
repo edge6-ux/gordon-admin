@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Pencil } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { formatPhone, formatCurrency, fmtDate } from "@/lib/utils";
 import SiteMap from "@/components/quotes/SiteMap";
@@ -180,22 +180,6 @@ export default async function QuoteDetailPage({
         {/* Actions */}
         <div className="print-hide mt-4 flex flex-wrap items-center gap-2">
           <QuoteActions quoteId={q.id} jobId={q.job_id} status={q.status} />
-          <Link
-            href={`/dashboard/quotes/${q.id}/edit`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-colors"
-            style={{
-              borderColor: "#D3D1C7",
-              color:       "#4A4A4A",
-              fontFamily:  "var(--font-inter)",
-              fontSize:    "14px",
-              background:  "white",
-              whiteSpace:  "nowrap",
-              textDecoration: "none",
-            }}
-          >
-            <Pencil size={15} />
-            Edit Quote
-          </Link>
           <DownloadQuoteButton quote={q} />
           <PrintQuoteButton />
           <DeleteButton
