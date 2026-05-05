@@ -147,21 +147,23 @@ export default function JobManagement({ job }: Props) {
           </div>
         </div>
 
-        {/* Assigned To */}
-        <div>
-          <div className="mb-1.5" style={labelStyle}>
-            Assigned To
+        {/* Assigned To — only shown once job is past the quote phase */}
+        {!["submitted", "reviewed", "quoted"].includes(job.status) && (
+          <div>
+            <div className="mb-1.5" style={labelStyle}>
+              Assigned To
+            </div>
+            <input
+              type="text"
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              onBlur={() => save({ assigned_to: assignedTo })}
+              placeholder="Gordon Pro Crew"
+              className={inputClass}
+              style={inputStyle}
+            />
           </div>
-          <input
-            type="text"
-            value={assignedTo}
-            onChange={(e) => setAssignedTo(e.target.value)}
-            onBlur={() => save({ assigned_to: assignedTo })}
-            placeholder="Gordon Pro Crew"
-            className={inputClass}
-            style={inputStyle}
-          />
-        </div>
+        )}
 
         {/* Internal Notes */}
         <div>
