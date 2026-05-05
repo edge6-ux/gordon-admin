@@ -32,11 +32,12 @@ export async function GET() {
       String(now.getDate()).padStart(2, "0"),
     ].join("-");
 
-    const [assignedRes, submittedRes, reviewedRes, todayRes, profilesRes] =
+    const [assignedRes, submittedRes, reviewedRes, quotedRes, todayRes, profilesRes] =
       await Promise.all([
         supabaseAdmin.from("jobs").select("*").eq("status", "assigned").is("deleted_at", null).order("created_at", { ascending: true }),
         supabaseAdmin.from("jobs").select("*").eq("status", "submitted").is("deleted_at", null).order("created_at", { ascending: true }),
         supabaseAdmin.from("jobs").select("*").eq("status", "reviewed").is("deleted_at", null).order("created_at", { ascending: true }),
+        supabaseAdmin.from("jobs").select("*").eq("status", "quoted").is("deleted_at", null).order("created_at", { ascending: true }),
         supabaseAdmin.from("jobs").select("*").eq("scheduled_date", todayStr).not("status", "in", '("complete","cancelled")').is("deleted_at", null).order("scheduled_time", { ascending: true, nullsFirst: false }),
         supabaseAdmin.from("user_profiles").select("id, name, role"),
       ]);
@@ -47,11 +48,11 @@ export async function GET() {
     return NextResponse.json({
       role,
       sections: {
-        // Jobs where quote was accepted but crew or schedule not yet confirmed
-        readyToAssign: allAssigned.filter((j) => !j.assigned_to || !j.scheduled_date),
-        pendingReview: submittedRes.data ?? [],
-        needsQuote:    reviewedRes.data  ?? [],
-        today:         todayRes.data     ?? [],
+        readyToAssign:      allAssigned.filter((j) => !j.assigned_to || !j.scheduled_date),
+        awaitingAcceptance: quotedRes.data   ?? [],
+        pendingReview:      submittedRes.data ?? [],
+        needsQuote:         reviewedRes.data  ?? [],
+        today:              todayRes.data     ?? [],
       },
       profiles,
     });

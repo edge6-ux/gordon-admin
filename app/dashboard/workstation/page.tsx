@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  UserCheck, ClipboardList, FileSignature,
+  UserCheck, ClipboardList, FileSignature, FileCheck,
   CalendarCheck2, MapPin, User, Clock, ArrowRight,
   CheckCircle2, FileText, Users, AlertTriangle,
 } from "lucide-react";
@@ -19,10 +19,11 @@ type CrewMember = { id: string; name: string; role: string };
 type AdminData = {
   role: "master_admin" | "admin";
   sections: {
-    readyToAssign: Job[];
-    pendingReview: Job[];
-    needsQuote:    Job[];
-    today:         Job[];
+    readyToAssign:      Job[];
+    awaitingAcceptance: Job[];
+    pendingReview:      Job[];
+    needsQuote:         Job[];
+    today:              Job[];
   };
   profiles: Record<string, Profile>;
 };
@@ -131,14 +132,15 @@ function ActionLink({ href, label, accentColor, accentBg }: { href: string; labe
 // ─── Admin / Master Admin view ────────────────────────────────────────────────
 
 const ADMIN_SECTIONS = [
-  { key: "readyToAssign" as const, label: "Ready to Assign & Schedule", description: "Quote accepted — assign a crew leader and confirm the date.", icon: UserCheck,     accentColor: "#C0392B", accentBg: "#FFF0EF", actionLabel: "Assign", actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
-  { key: "pendingReview" as const, label: "Pending Review",             description: "New submissions waiting to be reviewed.",                     icon: ClipboardList, accentColor: "#185FA5", accentBg: "#EFF6FF", actionLabel: "Review", actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
-  { key: "needsQuote"    as const, label: "Needs a Quote",              description: "Pushed to sales — awaiting quote.",                           icon: FileSignature, accentColor: "#5B21B6", accentBg: "#F5F3FF", actionLabel: "Create Quote", actionHref: (j: Job) => `/dashboard/quotes/new?jobId=${j.id}` },
-  { key: "today"         as const, label: "Today's Jobs",               description: "Scheduled for today.",                                        icon: CalendarCheck2, accentColor: "#1C3A2B", accentBg: "#EAF3DE", actionLabel: "View",   actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
+  { key: "readyToAssign"      as const, label: "Ready to Assign & Schedule", description: "Quote accepted — assign a crew leader and confirm the date.", icon: UserCheck,    accentColor: "#C0392B", accentBg: "#FFF0EF", actionLabel: "Assign",       actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
+  { key: "awaitingAcceptance" as const, label: "Awaiting Acceptance",        description: "Quote presented to customer — waiting for their sign-off.",  icon: FileCheck,    accentColor: "#C8922A", accentBg: "#FFFBF0", actionLabel: "View Quote",    actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
+  { key: "pendingReview"      as const, label: "Pending Review",             description: "New submissions waiting to be reviewed.",                     icon: ClipboardList, accentColor: "#185FA5", accentBg: "#EFF6FF", actionLabel: "Review",       actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
+  { key: "needsQuote"         as const, label: "Needs a Quote",              description: "Pushed to sales — awaiting quote.",                           icon: FileSignature, accentColor: "#5B21B6", accentBg: "#F5F3FF", actionLabel: "Create Quote", actionHref: (j: Job) => `/dashboard/quotes/new?jobId=${j.id}` },
+  { key: "today"              as const, label: "Today's Jobs",               description: "Scheduled for today.",                                        icon: CalendarCheck2, accentColor: "#1C3A2B", accentBg: "#EAF3DE", actionLabel: "View",        actionHref: (j: Job) => `/dashboard/jobs/${j.id}` },
 ];
 
 function AdminWorkstation({ data }: { data: AdminData }) {
-  const total = ADMIN_SECTIONS.slice(0, 3).reduce((n, s) => n + (data.sections[s.key]?.length ?? 0), 0);
+  const total = ADMIN_SECTIONS.slice(0, 4).reduce((n, s) => n + (data.sections[s.key]?.length ?? 0), 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

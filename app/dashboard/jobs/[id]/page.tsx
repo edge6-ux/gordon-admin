@@ -347,7 +347,7 @@ export default async function JobDetailPage({
       .single(),
     supabaseAdmin
       .from("quotes")
-      .select("site_map_pins")
+      .select("id, status, site_map_pins")
       .eq("job_id", id)
       .maybeSingle(),
   ]);
@@ -356,6 +356,7 @@ export default async function JobDetailPage({
   if (!job) redirect("/dashboard/jobs");
 
   const siteMapPins: SitePin[] = (quoteData?.site_map_pins ?? []) as SitePin[];
+  const linkedQuote = quoteData as { id: string; status: string; site_map_pins: SitePin[] } | null;
 
   const submission = job.submission;
   const statusCfg = STATUS_CONFIG[job.status] ?? STATUS_CONFIG.submitted;
@@ -453,6 +454,22 @@ export default async function JobDetailPage({
       <div className="flex items-center gap-2 mb-6 flex-wrap">
         {job.status === "submitted" && (
           <PushToSalesButton jobId={id} />
+        )}
+        {linkedQuote && (
+          <Link
+            href={`/dashboard/quotes/${linkedQuote.id}`}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors hover:opacity-90"
+            style={{
+              background:  linkedQuote.status === "accepted" ? "#EAF3DE" : "#FFFBF0",
+              color:       linkedQuote.status === "accepted" ? "#27500A" : "#C8922A",
+              fontFamily:  "var(--font-inter)",
+              fontSize:    "14px",
+              fontWeight:  500,
+            }}
+          >
+            <FileText size={15} />
+            View Quote
+          </Link>
         )}
         <Link
           href={`/dashboard/jobs/${id}/edit`}
